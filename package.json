@@ -1,0 +1,50 @@
+{
+  "name": "@croct/ts-project",
+  "version": "0.0.0-dev",
+  "description": "A brief description about the project.",
+  "author": {
+    "name": "AuthorName",
+    "email": "project-ts+lib@croct.com",
+    "url": "https://github.com/croct-tech/project-ts"
+  },
+  "license": "UNLICENSED",
+  "keywords": [
+    "croct",
+    "personalization",
+    "typescript"
+  ],
+  "types": "index.d.ts",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/croct-tech/project-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/croct-tech/project-ts/issues"
+  },
+  "homepage": "https://github.com/croct-tech/project-ts",
+  "scripts": {
+    "lint": "eslint 'src/**/*.ts' 'test/**/*.ts'",
+    "test": "jest -c jest.config.js --coverage",
+    "validate": "tsc --noEmit"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.15",
+    "@typescript-eslint/eslint-plugin": "^2.24.0",
+    "@typescript-eslint/parser": "^2.24.0",
+    "dts-bundle-generator": "^3.3.1",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-jest": "^23.7.0",
+    "jest": "^25.1.0",
+    "ts-jest": "^25.2.0",
+    "typescript": "^3.9.2"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ]
+}
