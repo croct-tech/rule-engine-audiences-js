@@ -23,7 +23,34 @@ export type AudienceMap = {
     [key: string]: AudienceDefinition|string,
 }
 
-export const audienceMapScheme = new ObjectType({
+export type Options = {
+    audiences: AudienceMap,
+    evaluationOptions?: EvaluationOptions,
+};
+
+const compositeExpressionSchema = new ObjectType({
+    required: ['conjunction', 'subexpression'],
+    properties: {
+        conjunction: new StringType({
+            enumeration: ['and', 'or'],
+        }),
+        subexpressions: new ArrayType({
+            items: new StringType({minLength: 1}),
+        }),
+    },
+});
+
+const evaluationOptionsSchema = new ObjectType({
+    properties: {
+        timeout: new NumberType({
+            integer: true,
+            minimum: 100,
+        }),
+        attributes: new JsonObjectType(),
+    },
+});
+
+const audienceMapSchema = new ObjectType({
     propertyNames: new StringType({
         minLength: 1,
     }),
@@ -34,30 +61,20 @@ export const audienceMapScheme = new ObjectType({
             properties: {
                 expression: new UnionType(
                     new StringType({minLength: 1}),
-                    new ObjectType({
-                        required: ['conjunction', 'subexpression'],
-                        properties: {
-                            conjunction: new StringType({
-                                enumeration: ['and', 'or'],
-                            }),
-                            subexpressions: new ArrayType({
-                                items: new StringType({minLength: 1}),
-                            }),
-                        },
-                    }),
+                    compositeExpressionSchema,
                 ),
-                options: new ObjectType({
-                    properties: {
-                        timeout: new NumberType({
-                            integer: true,
-                            minimum: 100,
-                        }),
-                        attributes: new JsonObjectType(),
-                    },
-                }),
+                options: evaluationOptionsSchema,
             },
         }),
     ),
+});
+
+export const optionsSchema = new ObjectType({
+    required: ['audiences'],
+    properties: {
+        audiences: audienceMapSchema,
+        evaluationOptions: evaluationOptionsSchema,
+    },
 });
 
 export default class AudiencesExtension implements Extension {
@@ -67,10 +84,13 @@ export default class AudiencesExtension implements Extension {
 
     private readonly audiences: AudienceMap;
 
+    private readonly evaluationOptions: EvaluationOptions;
+
     private readonly logger: Logger;
 
-    public constructor(audiences: AudienceMap, evaluator: Evaluator, tracker: Tracker, logger: Logger) {
-        this.audiences = audiences;
+    public constructor(options: Options, evaluator: Evaluator, tracker: Tracker, logger: Logger) {
+        this.audiences = options.audiences;
+        this.evaluationOptions = options.evaluationOptions ?? {timeout: 800};
         this.evaluator = evaluator;
         this.tracker = tracker;
         this.logger = logger;
@@ -116,9 +136,10 @@ export default class AudiencesExtension implements Extension {
             return false;
         }
 
-        const evaluation = options !== undefined
-            ? this.evaluator.evaluate(generatedExpression, options)
-            : this.evaluator.evaluate(generatedExpression);
+        const evaluation = this.evaluator.evaluate(generatedExpression, {
+            ...this.evaluationOptions,
+            ...(options ?? {}),
+        });
 
         let result;
 

@@ -1,10 +1,10 @@
 import engine from '@croct/plug-rule-engine/plugin';
 import {PluginArguments} from '@croct/plug/plugin';
-import AudiencesExtension, {AudienceMap, audienceMapScheme} from './extension';
+import AudiencesExtension, {Options, optionsSchema} from './extension';
 
 declare module '@croct/plug-rule-engine/plugin' {
     export interface ExtensionConfigurations {
-        audiences?: AudienceMap;
+        audiences?: Options;
     }
 }
 
@@ -14,8 +14,8 @@ declare module '@croct/plug-rule-engine/rule' {
     }
 }
 
-engine.extend('experiments', ({options, sdk}: PluginArguments<AudienceMap>) => {
-    audienceMapScheme.validate(options);
+engine.extend('experiments', ({options, sdk}: PluginArguments<Options>) => {
+    optionsSchema.validate(options);
 
     return new AudiencesExtension(options, sdk.evaluator, sdk.tracker, sdk.getLogger());
 });
