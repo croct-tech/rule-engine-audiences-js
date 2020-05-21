@@ -47,9 +47,9 @@ croct.plug({
                     map: {
                         'returning-users': 'user is returning',
                     },
-                },
-                defaultOptions: {
-                    timeout: 300,
+                    defaultOptions: {
+                        timeout: 300,
+                    },
                 },
             },
             pages: {
