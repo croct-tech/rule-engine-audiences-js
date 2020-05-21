@@ -1,50 +1,58 @@
 {
-  "name": "@croct/ts-project",
+  "name": "@croct/rule-engine-audiences",
   "version": "0.0.0-dev",
-  "description": "A brief description about the project.",
+  "description": "A rule engine extension for audience targeting.",
   "author": {
-    "name": "AuthorName",
-    "email": "project-ts+lib@croct.com",
-    "url": "https://github.com/croct-tech/project-ts"
+    "name": "Croct",
+    "email": "rule-engine-audiences-js+lib@croct.com",
+    "url": "https://croct.com"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "keywords": [
     "croct",
+    "plug-js",
+    "rule-engine",
+    "rule-engine-extension",
+    "audience",
     "personalization",
+    "javascript",
     "typescript"
   ],
   "types": "index.d.ts",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/croct-tech/project-ts.git"
+    "url": "git+https://github.com/croct-tech/rule-engine-audiences-js.git"
   },
   "bugs": {
-    "url": "https://github.com/croct-tech/project-ts/issues"
+    "url": "https://github.com/croct-tech/rule-engine-audiences-js/issues"
   },
-  "homepage": "https://github.com/croct-tech/project-ts",
+  "homepage": "https://github.com/croct-tech/rule-engine-audiences-js",
   "scripts": {
     "lint": "eslint 'src/**/*.ts' 'test/**/*.ts'",
     "test": "jest -c jest.config.js --coverage",
-    "validate": "tsc --noEmit"
+    "validate": "tsc --noEmit",
+    "build": "tsc"
   },
   "dependencies": {
+    "@croct/plug": "0.2.0-beta.7",
+    "@croct/plug-rule-engine": "0.0.1-alpha.2"
   },
   "devDependencies": {
     "@types/jest": "^24.0.15",
     "@typescript-eslint/eslint-plugin": "^2.24.0",
     "@typescript-eslint/parser": "^2.24.0",
-    "dts-bundle-generator": "^3.3.1",
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.1.0",
     "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-jest": "^23.7.0",
     "jest": "^25.1.0",
+    "jest-extended": "^0.11.5",
     "ts-jest": "^25.2.0",
     "typescript": "^3.9.2"
   },
   "files": [
-    "index.js",
-    "index.d.ts"
+    "*.js",
+    "*.ts"
   ]
 }
