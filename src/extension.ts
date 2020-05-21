@@ -24,12 +24,12 @@ export type AudienceMap = {
 }
 
 export type Options = {
-    audiences: AudienceMap,
-    evaluationOptions?: EvaluationOptions,
+    map: AudienceMap,
+    defaultOptions?: EvaluationOptions,
 };
 
 const compositeExpressionSchema = new ObjectType({
-    required: ['conjunction', 'subexpression'],
+    required: ['conjunction', 'subexpressions'],
     properties: {
         conjunction: new StringType({
             enumeration: ['and', 'or'],
@@ -70,10 +70,10 @@ const audienceMapSchema = new ObjectType({
 });
 
 export const optionsSchema = new ObjectType({
-    required: ['audiences'],
+    required: ['map'],
     properties: {
-        audiences: audienceMapSchema,
-        evaluationOptions: evaluationOptionsSchema,
+        map: audienceMapSchema,
+        defaultOptions: evaluationOptionsSchema,
     },
 });
 
@@ -89,8 +89,8 @@ export default class AudiencesExtension implements Extension {
     private readonly logger: Logger;
 
     public constructor(options: Options, evaluator: Evaluator, tracker: Tracker, logger: Logger) {
-        this.audiences = options.audiences;
-        this.evaluationOptions = options.evaluationOptions ?? {timeout: 800};
+        this.audiences = options.map;
+        this.evaluationOptions = options.defaultOptions ?? {timeout: 800};
         this.evaluator = evaluator;
         this.tracker = tracker;
         this.logger = logger;
@@ -102,14 +102,18 @@ export default class AudiencesExtension implements Extension {
         }
 
         if (typeof audience !== 'string') {
-            throw new Error(
+            this.logger.error(
                 `Invalid audience specified for rule "${name}", `
                 + `expected string but got ${typeof audience}.`,
             );
+
+            return null;
         }
 
         if (this.audiences[audience] === undefined) {
-            throw new Error(`Audience "${audience}" does not exist.`);
+            this.logger.error(`Audience "${audience}" does not exist.`);
+
+            return null;
         }
 
         return new Variable(audience);

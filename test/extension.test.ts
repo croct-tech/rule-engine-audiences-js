@@ -1,23 +1,26 @@
-import {Rule, Predicate} from '../../src';
-
-import Extension, {AudienceDefinition} from '../../src/ext/audience/audienceMatcher';
-import {Context} from '../../src/context';
-import {MockContainer} from '../mock/mockContainer';
+import {Rule} from '@croct/plug-rule-engine/rule';
+import {Predicate} from '@croct/plug-rule-engine/predicate';
+import {Context} from '@croct/plug-rule-engine/context';
+import {createEvaluatorMock, createLoggerMock, createTrackerMock} from './mocks';
+import AudiencesExtension, {AudienceDefinition} from '../src/extension';
+import {EvaluationErrorType} from "@croct/sdk/evaluator";
 
 beforeEach(() => {
     jest.restoreAllMocks();
 });
 
 describe('An audience matcher extension', () => {
-    test('should have a name', async () => {
-        const extensionFactory = Extension.initialize({fooAudience: 'foo'});
-
-        expect(extensionFactory.getExtensionName()).toBe(Extension.name);
-    });
-
     test('should provide a predicate for a given audience name', async () => {
-        const extensionFactory = Extension.initialize({fooAudience: 'foo'});
-        const extension = extensionFactory.create(new MockContainer());
+        const extension = new AudiencesExtension(
+            {
+                map: {
+                    fooAudience: 'foo',
+                },
+            },
+            createEvaluatorMock(),
+            createTrackerMock(),
+            createLoggerMock(),
+        );
 
         const rule: Rule = {
             name: 'foo',
@@ -32,50 +35,72 @@ describe('An audience matcher extension', () => {
         await expect(predicate.test(context)).resolves.toBe(true);
     });
 
-    test('should not provide a predicate if the audience name is not specified', () => {
-        const extensionFactory = Extension.initialize({fooAudience: {expression: 'foo'}});
-        const extension = extensionFactory.create(new MockContainer());
+    test.each<[any, string]>([
+        [
+            null,
+            'Invalid audience specified for rule "foo", expected string but got object.',
+        ],
+        [
+            {},
+            'Invalid audience specified for rule "foo", expected string but got object.',
+        ],
+        [
+            1,
+            'Invalid audience specified for rule "foo", expected string but got number.',
+        ],
+        [
+            'barAudience',
+            'Audience "barAudience" does not exist.',
+        ],
+    ])('should log an error if the audiences properties are like %p', (audience: any, message: string) => {
+        const logger = createLoggerMock();
+
+        const extension = new AudiencesExtension(
+            {
+                map: {
+                    fooAudience: {
+                        expression: 'foo',
+                    },
+                },
+            },
+            createEvaluatorMock(),
+            createTrackerMock(),
+            logger,
+        );
 
         const rule: Rule = {
             name: 'foo',
-            properties: {},
+            properties: {
+                audience: audience,
+            },
         };
 
         expect(extension.getPredicate(rule)).toBeNull();
+        expect(logger.error).toHaveBeenCalledWith(message);
     });
 
-    test('should fail if the audience name is not a string', () => {
-        const extensionFactory = Extension.initialize({fooAudience: 'foo'});
-        const extension = extensionFactory.create(new MockContainer());
-
-        const rule: Rule = {
-            name: 'foo',
-            properties: {audience: 1},
-        };
-
-        function getPredicate(): void {
-            extension.getPredicate(rule);
-        }
-
-        expect(getPredicate).toThrow(
-            'Invalid audience specified for rule "foo", expected string but got number.',
+    test('should not provide a predicate if the audience definition is undefined', () => {
+        const extension = new AudiencesExtension(
+            {
+                map: {
+                    fooAudience: {
+                        expression: 'foo',
+                    },
+                },
+            },
+            createEvaluatorMock(),
+            createTrackerMock(),
+            createLoggerMock(),
         );
-    });
-
-    test('should fail if the specified audience does not exist', () => {
-        const extensionFactory = Extension.initialize({fooAudience: 'foo'});
-        const extension = extensionFactory.create(new MockContainer());
 
         const rule: Rule = {
             name: 'foo',
-            properties: {audience: 'barAudience'},
+            properties: {
+                audience: undefined,
+            },
         };
 
-        function getPredicate(): void {
-            extension.getPredicate(rule);
-        }
-
-        expect(getPredicate).toThrow('Audience "barAudience" does not exist.');
+        expect(extension.getPredicate(rule)).toBeNull();
     });
 
     test.each<[string, AudienceDefinition, string]>([
@@ -127,37 +152,49 @@ describe('An audience matcher extension', () => {
     ])(
         'should evaluate the audience "%s"',
         async (audience: string, definition: AudienceDefinition, expression: string) => {
-            const extensionFactory = Extension.initialize({[audience]: definition});
+            const evaluator = createEvaluatorMock();
 
-            const container = new MockContainer();
-            const evaluator = container.getEvaluator();
             evaluator.evaluate = jest.fn().mockResolvedValue(true);
 
-            const extension = extensionFactory.create(container);
+            const extension = new AudiencesExtension(
+                {
+                    map: {
+                        [audience]: definition,
+                    },
+                },
+                evaluator,
+                createTrackerMock(),
+                createLoggerMock(),
+            );
 
             const variables = extension.getVariables();
 
             await expect(variables[audience]()).resolves.toBe(true);
 
-            expect(evaluator.evaluate).toHaveBeenCalledWith(expression);
+            expect(evaluator.evaluate).toHaveBeenCalledWith(expression, {timeout: 800});
         },
     );
 
     test('should evaluate the audience expression with the specified options', async () => {
-        const extensionFactory = Extension.initialize({
-            fooAudience: {
-                expression: 'foo',
-                options: {
-                    timeout: 10,
-                },
-            },
-        });
+        const evaluator = createEvaluatorMock();
 
-        const container = new MockContainer();
-        const evaluator = container.getEvaluator();
         evaluator.evaluate = jest.fn().mockResolvedValue(true);
 
-        const extension = extensionFactory.create(container);
+        const extension = new AudiencesExtension(
+            {
+                map: {
+                    fooAudience: {
+                        expression: 'foo',
+                        options: {
+                            timeout: 10,
+                        },
+                    },
+                },
+            },
+            evaluator,
+            createTrackerMock(),
+            createLoggerMock(),
+        );
 
         const variables = extension.getVariables();
 
@@ -167,22 +204,26 @@ describe('An audience matcher extension', () => {
     });
 
     test('should log a warn message if the definition specified for an audience is invalid', async () => {
-        const extensionFactory = Extension.initialize({
-            invalid: {
-                expression: {
-                    conjunction: 'or',
-                    subexpressions: [],
-                },
-            },
-        });
-
-        const container = new MockContainer();
-        const evaluator = container.getEvaluator();
-        const logger = container.getLogger();
+        const evaluator = createEvaluatorMock();
+        const logger = createLoggerMock();
 
         evaluator.evaluate = jest.fn();
 
-        const extension = extensionFactory.create(container);
+        const extension = new AudiencesExtension(
+            {
+                map: {
+                    invalid: {
+                        expression: {
+                            conjunction: 'or',
+                            subexpressions: [],
+                        },
+                    },
+                },
+            },
+            evaluator,
+            createTrackerMock(),
+            logger,
+        );
 
         const variables = extension.getVariables();
 
@@ -196,41 +237,119 @@ describe('An audience matcher extension', () => {
     });
 
     test('should log a warn message if the result of the audience evaluation is not boolean', async () => {
-        const extensionFactory = Extension.initialize({fooAudience: 'foo'});
-
-        const container = new MockContainer();
-        const evaluator = container.getEvaluator();
-        const logger = container.getLogger();
+        const evaluator = createEvaluatorMock();
+        const logger = createLoggerMock();
 
         evaluator.evaluate = jest.fn().mockResolvedValue('bar');
 
-        const extension = extensionFactory.create(container);
+        const extension = new AudiencesExtension(
+            {
+                map: {
+                    fooAudience: 'foo',
+                },
+            },
+            evaluator,
+            createTrackerMock(),
+            logger,
+        );
 
         const variables = extension.getVariables();
 
         await expect(variables.fooAudience()).resolves.toBe(false);
 
         expect(logger.warn).toHaveBeenCalledWith(
-            'The evaluation result for audience "fooAudience" is not a boolean '
-            + 'which may lead to unexpected results.',
+            'Evaluation result for audience "fooAudience" is not boolean which may lead to unexpected results.',
         )
     });
 
-    test('should log an error message if the audience evaluation fails', async () => {
-        const extensionFactory = Extension.initialize({fooAudience: 'foo'});
+    test('should log an error message and track an event if the audience evaluation fails', async () => {
+        const evaluator = createEvaluatorMock();
+        const tracker = createTrackerMock();
+        const logger = createLoggerMock();
 
-        const container = new MockContainer();
-        const evaluator = container.getEvaluator();
-        const logger = container.getLogger();
+        evaluator.evaluate = jest.fn().mockRejectedValue({
+            response: {
+                type: EvaluationErrorType.TIMEOUT,
+                title: 'Timeout reached.',
+                status: 408,
+                detail: 'The evaluation took more than 800ms to complete.',
+            },
+        });
 
-        evaluator.evaluate = jest.fn().mockRejectedValue(new Error('Evaluation failed.'));
+        tracker.track = jest.fn().mockResolvedValue(undefined);
 
-        const extension = extensionFactory.create(container);
+        const extension = new AudiencesExtension(
+            {
+                map: {
+                    fooAudience: 'foo',
+                },
+            },
+            evaluator,
+            tracker,
+            logger,
+        );
 
         const variables = extension.getVariables();
 
         await expect(variables.fooAudience()).resolves.toBe(false);
 
-        expect(logger.error).toHaveBeenCalledWith('The evaluation of audience "fooAudience" failed.');
+        const event = {
+            name: 'audienceTimeout',
+            audience: 'fooAudience',
+            details: {
+                errorType: EvaluationErrorType.TIMEOUT,
+                errorTitle: 'Timeout reached.',
+                errorDetail: 'The evaluation took more than 800ms to complete.',
+            },
+        };
+
+        expect(tracker.track).toHaveBeenCalledWith('eventOccurred', event);
+        expect(logger.error).toHaveBeenCalledWith('Evaluation of audience "fooAudience" failed: Timeout reached.');
+    });
+
+    test('should log an error message if the audience evaluation fails and event is not tracked', async () => {
+        const evaluator = createEvaluatorMock();
+        const tracker = createTrackerMock();
+        const logger = createLoggerMock();
+
+        evaluator.evaluate = jest.fn().mockRejectedValue({
+            response: {
+                type: EvaluationErrorType.TIMEOUT,
+                title: 'Timeout reached.',
+                status: 408,
+                detail: 'The evaluation took more than 800ms to complete.',
+            },
+        });
+
+        tracker.track = jest.fn().mockRejectedValue(undefined);
+
+        const extension = new AudiencesExtension(
+            {
+                map: {
+                    fooAudience: 'foo',
+                },
+            },
+            evaluator,
+            tracker,
+            logger,
+        );
+
+        const variables = extension.getVariables();
+
+        await expect(variables.fooAudience()).resolves.toBe(false);
+
+        const event = {
+            name: 'audienceTimeout',
+            audience: 'fooAudience',
+            details: {
+                errorType: EvaluationErrorType.TIMEOUT,
+                errorTitle: 'Timeout reached.',
+                errorDetail: 'The evaluation took more than 800ms to complete.',
+            },
+        };
+
+        expect(tracker.track).toHaveBeenCalledWith('eventOccurred', event);
+        expect(logger.error).toHaveBeenCalledWith('Evaluation of audience "fooAudience" failed: Timeout reached.');
+        expect(logger.debug).toHaveBeenCalledWith('Failed to log audience evaluation error "Timeout reached.".');
     });
 });

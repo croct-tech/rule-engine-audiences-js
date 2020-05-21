@@ -44,7 +44,12 @@ croct.plug({
         rules: {
             extensions: {
                 audiences: {
-                    'returning-users': 'user is returning',
+                    map: {
+                        'returning-users': 'user is returning',
+                    },
+                },
+                defaultOptions: {
+                    timeout: 300,
                 },
             },
             pages: {
