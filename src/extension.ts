@@ -1,6 +1,6 @@
 import {EvaluationError, EvaluationErrorType, EvaluationOptions, Evaluator} from '@croct/plug/sdk/evaluation';
 import {Tracker} from '@croct/plug/sdk/tracking';
-import {ObjectType, StringType, UnionType, ArrayType, NumberType, JsonObjectType} from '@croct/plug/sdk/validation';
+import {formatCause} from '@croct/plug/sdk/validation';
 import {Logger} from '@croct/plug/sdk';
 import {Predicate, Variable} from '@croct/plug-rule-engine/predicate';
 import {VariableMap} from '@croct/plug-rule-engine/context';
@@ -27,55 +27,6 @@ export type Options = {
     map: AudienceMap,
     defaultOptions?: EvaluationOptions,
 };
-
-const compositeExpressionSchema = new ObjectType({
-    required: ['conjunction', 'subexpressions'],
-    properties: {
-        conjunction: new StringType({
-            enumeration: ['and', 'or'],
-        }),
-        subexpressions: new ArrayType({
-            items: new StringType({minLength: 1}),
-        }),
-    },
-});
-
-const evaluationOptionsSchema = new ObjectType({
-    properties: {
-        timeout: new NumberType({
-            integer: true,
-            minimum: 100,
-        }),
-        attributes: new JsonObjectType(),
-    },
-});
-
-const audienceMapSchema = new ObjectType({
-    propertyNames: new StringType({
-        minLength: 1,
-    }),
-    additionalProperties: new UnionType(
-        new StringType({minLength: 1}),
-        new ObjectType({
-            required: ['expression'],
-            properties: {
-                expression: new UnionType(
-                    new StringType({minLength: 1}),
-                    compositeExpressionSchema,
-                ),
-                options: evaluationOptionsSchema,
-            },
-        }),
-    ),
-});
-
-export const optionsSchema = new ObjectType({
-    required: ['map'],
-    properties: {
-        map: audienceMapSchema,
-        defaultOptions: evaluationOptionsSchema,
-    },
-});
 
 export default class AudiencesExtension implements Extension {
     private readonly evaluator: Evaluator;
@@ -152,13 +103,14 @@ export default class AudiencesExtension implements Extension {
         } catch (error) {
             const {response: {type, title, detail}} = error as EvaluationError;
 
-            this.logger.error(`Evaluation of audience "${audience}" failed: ${title}`);
+            this.logger.error(`Evaluation of audience "${audience}" failed: ${formatCause(error)}`);
 
             if (type === EvaluationErrorType.TIMEOUT) {
                 const promise = this.tracker.track('eventOccurred', {
                     name: 'audienceTimeout',
                     audience: audience,
                     details: {
+                        expression: generatedExpression,
                         errorType: type,
                         errorTitle: title,
                         errorDetail: detail ?? '',
@@ -166,7 +118,7 @@ export default class AudiencesExtension implements Extension {
                 });
 
                 promise.catch(() => {
-                    this.logger.debug(`Failed to log audience evaluation error "${title}".`);
+                    this.logger.debug(`Failed to log audience evaluation error "${title}"`);
                 });
             }
 

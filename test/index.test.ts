@@ -346,7 +346,7 @@ describe('An audience extension installer', () => {
                 },
             },
         ],
-    ])('should accept definitions %p', (definitions: any) => {
+    ])('should accept definition %p', (definitions: any) => {
         const [, factory]: [string, ExtensionFactory] = (engine.extend as jest.Mock).mock.calls[0];
 
         const sdk: Partial<PluginSdk> = {

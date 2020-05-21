@@ -1,9 +1,9 @@
 import {Rule} from '@croct/plug-rule-engine/rule';
 import {Predicate} from '@croct/plug-rule-engine/predicate';
 import {Context} from '@croct/plug-rule-engine/context';
+import {EvaluationErrorType, EvaluationError} from '@croct/plug/sdk/evaluation';
 import {createEvaluatorMock, createLoggerMock, createTrackerMock} from './mocks';
 import AudiencesExtension, {AudienceDefinition} from '../src/extension';
-import {EvaluationErrorType} from "@croct/sdk/evaluator";
 
 beforeEach(() => {
     jest.restoreAllMocks();
@@ -52,7 +52,7 @@ describe('An audience matcher extension', () => {
             'barAudience',
             'Audience "barAudience" does not exist.',
         ],
-    ])('should log an error if the audiences properties are like %p', (audience: any, message: string) => {
+    ])('should log an error for invalid properties %p', (audience: any, message: string) => {
         const logger = createLoggerMock();
 
         const extension = new AudiencesExtension(
@@ -262,19 +262,17 @@ describe('An audience matcher extension', () => {
         )
     });
 
-    test('should log an error message and track an event if the audience evaluation fails', async () => {
+    test('should log an error message and track an event if an audience evaluation timeout', async () => {
         const evaluator = createEvaluatorMock();
         const tracker = createTrackerMock();
         const logger = createLoggerMock();
 
-        evaluator.evaluate = jest.fn().mockRejectedValue({
-            response: {
-                type: EvaluationErrorType.TIMEOUT,
-                title: 'Timeout reached.',
-                status: 408,
-                detail: 'The evaluation took more than 800ms to complete.',
-            },
-        });
+        evaluator.evaluate = jest.fn().mockRejectedValue(new EvaluationError({
+            type: EvaluationErrorType.TIMEOUT,
+            title: 'Timeout reached.',
+            status: 408,
+            detail: 'The evaluation took more than 800ms to complete.',
+        }));
 
         tracker.track = jest.fn().mockResolvedValue(undefined);
 
@@ -297,6 +295,7 @@ describe('An audience matcher extension', () => {
             name: 'audienceTimeout',
             audience: 'fooAudience',
             details: {
+                expression: 'foo',
                 errorType: EvaluationErrorType.TIMEOUT,
                 errorTitle: 'Timeout reached.',
                 errorDetail: 'The evaluation took more than 800ms to complete.',
@@ -304,22 +303,20 @@ describe('An audience matcher extension', () => {
         };
 
         expect(tracker.track).toHaveBeenCalledWith('eventOccurred', event);
-        expect(logger.error).toHaveBeenCalledWith('Evaluation of audience "fooAudience" failed: Timeout reached.');
+        expect(logger.error).toHaveBeenCalledWith('Evaluation of audience "fooAudience" failed: timeout reached.');
     });
 
-    test('should log an error message if the audience evaluation fails and event is not tracked', async () => {
+    test('should log an error message if the audience evaluation timeout and the event cannot be tracked', async () => {
         const evaluator = createEvaluatorMock();
         const tracker = createTrackerMock();
         const logger = createLoggerMock();
 
-        evaluator.evaluate = jest.fn().mockRejectedValue({
-            response: {
-                type: EvaluationErrorType.TIMEOUT,
-                title: 'Timeout reached.',
-                status: 408,
-                detail: 'The evaluation took more than 800ms to complete.',
-            },
-        });
+        evaluator.evaluate = jest.fn().mockRejectedValue(new EvaluationError({
+            type: EvaluationErrorType.TIMEOUT,
+            title: 'Timeout reached.',
+            status: 408,
+            detail: 'The evaluation took more than 800ms to complete.',
+        }));
 
         tracker.track = jest.fn().mockRejectedValue(undefined);
 
@@ -338,18 +335,7 @@ describe('An audience matcher extension', () => {
 
         await expect(variables.fooAudience()).resolves.toBe(false);
 
-        const event = {
-            name: 'audienceTimeout',
-            audience: 'fooAudience',
-            details: {
-                errorType: EvaluationErrorType.TIMEOUT,
-                errorTitle: 'Timeout reached.',
-                errorDetail: 'The evaluation took more than 800ms to complete.',
-            },
-        };
-
-        expect(tracker.track).toHaveBeenCalledWith('eventOccurred', event);
-        expect(logger.error).toHaveBeenCalledWith('Evaluation of audience "fooAudience" failed: Timeout reached.');
-        expect(logger.debug).toHaveBeenCalledWith('Failed to log audience evaluation error "Timeout reached.".');
+        expect(tracker.track).toHaveBeenCalledWith('eventOccurred', expect.anything());
+        expect(logger.debug).toHaveBeenCalledWith('Failed to log audience evaluation error "Timeout reached."');
     });
 });

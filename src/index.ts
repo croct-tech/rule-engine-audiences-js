@@ -1,6 +1,7 @@
 import engine from '@croct/plug-rule-engine/plugin';
 import {PluginArguments} from '@croct/plug/plugin';
-import AudiencesExtension, {Options, optionsSchema} from './extension';
+import AudiencesExtension, {Options} from './extension';
+import {optionsSchema} from './schemas';
 
 declare module '@croct/plug-rule-engine/plugin' {
     export interface ExtensionConfigurations {
