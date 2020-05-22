@@ -39,7 +39,6 @@ import '@croct/rule-engine';
 import '@croct/rule-engine-audiences';
 
 croct.plug({
-    appId: '<APP_ID>',
     plugins: {
         rules: {
             extensions: {
