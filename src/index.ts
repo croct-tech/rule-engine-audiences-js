@@ -5,7 +5,7 @@ import {optionsSchema} from './schemas';
 
 declare module '@croct/plug-rule-engine/plugin' {
     export interface ExtensionConfigurations {
-        audiences?: Options;
+        audiences?: Options | false;
     }
 }
 
