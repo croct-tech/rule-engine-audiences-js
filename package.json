@@ -35,8 +35,8 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@croct/plug": "0.2.0-beta.7",
-    "@croct/plug-rule-engine": "0.0.1-alpha.2"
+    "@croct/plug": "0.2.0-beta.9",
+    "@croct/plug-rule-engine": "0.0.1-alpha.4"
   },
   "devDependencies": {
     "@types/jest": "^24.0.15",
