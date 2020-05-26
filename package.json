@@ -36,7 +36,8 @@
   },
   "dependencies": {
     "@croct/plug": "0.2.1",
-    "@croct/plug-rule-engine": "0.0.1-alpha.6"
+    "@croct/plug-rule-engine": "0.0.1-alpha.6",
+    "tslib": "^2.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.9.6",
