@@ -35,8 +35,8 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@croct/plug": "0.2.2",
-    "@croct/plug-rule-engine": "0.0.1-alpha.7",
+    "@croct/plug": "^0.3.0",
+    "@croct/plug-rule-engine": "^0.1.0",
     "tslib": "^2.0.0"
   },
   "devDependencies": {
