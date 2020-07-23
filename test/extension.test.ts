@@ -233,7 +233,7 @@ describe('An audience matcher extension', () => {
 
         expect(logger.warn).toHaveBeenCalledWith(
             'Invalid expression definition specified for audience "invalid".',
-        )
+        );
     });
 
     test('should log a warn message if the result of the audience evaluation is not boolean', async () => {
@@ -259,7 +259,7 @@ describe('An audience matcher extension', () => {
 
         expect(logger.warn).toHaveBeenCalledWith(
             'Evaluation result for audience "fooAudience" is not boolean which may lead to unexpected results.',
-        )
+        );
     });
 
     test('should log an error message and track an event if an audience evaluation timeout', async () => {
