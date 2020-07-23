@@ -10,18 +10,18 @@ import {Rule} from '@croct/plug-rule-engine/rule';
 type CompositeExpressionDefinition = {
     conjunction: 'and' | 'or',
     subexpressions: string[],
-}
+};
 
 type ExpressionDefinition = CompositeExpressionDefinition | string;
 
 export type AudienceDefinition = {
     expression: ExpressionDefinition,
     options?: EvaluationOptions,
-}
+};
 
 export type AudienceMap = {
     [key: string]: AudienceDefinition|string,
-}
+};
 
 export type Options = {
     map: AudienceMap,
